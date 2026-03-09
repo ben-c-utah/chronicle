@@ -1,0 +1,11 @@
+#!/bin/sh
+
+MAX_FILES=200
+
+COUNT=$(git diff --cached --name-only | wc -l)
+
+if [ "$COUNT" -gt "$MAX_FILES" ]; then
+  echo "🚨 Commit blocked: Too many files staged ($COUNT)."
+  echo "You probably added node_modules or build output."
+  exit 1
+fi
