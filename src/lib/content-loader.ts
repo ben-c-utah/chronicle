@@ -1,8 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import {
+  chronicleRecordSchema,
+  type ChronicleRecordFrontmatter,
+} from "@/schema/record";
 
-export type ChronicleRecordType =
+export type ChronicleDirectory =
   | "campaigns"
   | "cultures"
   | "events"
@@ -18,13 +22,13 @@ export interface RawChronicleRecord {
   title: string;
   content: string;
   sourcePath: string;
-  directory: ChronicleRecordType;
-  frontmatter: Record<string, unknown>;
+  directory: ChronicleDirectory;
+  frontmatter: ChronicleRecordFrontmatter;
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content");
 
-const CONTENT_DIRECTORIES: ChronicleRecordType[] = [
+const CONTENT_DIRECTORIES: ChronicleDirectory[] = [
   "campaigns",
   "cultures",
   "events",
@@ -52,8 +56,34 @@ function getFilesInDirectory(directoryPath: string): string[] {
     .filter((fileName) => isMdxFile(fileName));
 }
 
+function validateFrontmatter(
+  data: Record<string, unknown>,
+  filePath: string,
+  fallbackSlug: string,
+): ChronicleRecordFrontmatter {
+  const normalizedData = {
+    ...data,
+    slug:
+      typeof data.slug === "string" && data.slug.trim().length > 0
+        ? data.slug
+        : fallbackSlug,
+  };
+
+  const result = chronicleRecordSchema.safeParse(normalizedData);
+
+  if (!result.success) {
+    const message = result.error.issues
+      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+      .join("; ");
+
+    throw new Error(`Invalid Chronicle record in "${filePath}": ${message}`);
+  }
+
+  return result.data;
+}
+
 export function loadRecordsFromDirectory(
-  directory: ChronicleRecordType,
+  directory: ChronicleDirectory,
 ): RawChronicleRecord[] {
   const directoryPath = path.join(CONTENT_ROOT, directory);
   const fileNames = getFilesInDirectory(directoryPath);
@@ -63,31 +93,22 @@ export function loadRecordsFromDirectory(
     const fileContents = fs.readFileSync(fullPath, "utf8");
     const { data, content } = matter(fileContents);
 
-    const slug =
-      typeof data.slug === "string" && data.slug.trim().length > 0
-        ? data.slug
-        : getSlugFromFileName(fileName);
-
-    const title =
-      typeof data.title === "string" && data.title.trim().length > 0
-        ? data.title
-        : slug;
-
-    const id =
-      typeof data.id === "string" && data.id.trim().length > 0
-        ? data.id
-        : `${directory}-${slug}`;
+    const fallbackSlug = getSlugFromFileName(fileName);
+    const frontmatter = validateFrontmatter(
+      data as Record<string, unknown>,
+      fullPath,
+      fallbackSlug,
+    );
 
     return {
-      id,
-      recordType:
-        typeof data.recordType === "string" ? data.recordType : directory,
-      slug,
-      title,
+      id: frontmatter.id,
+      recordType: frontmatter.recordType,
+      slug: frontmatter.slug,
+      title: frontmatter.title,
       content: content.trim(),
       sourcePath: fullPath,
       directory,
-      frontmatter: data,
+      frontmatter,
     };
   });
 }

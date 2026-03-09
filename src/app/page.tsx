@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { loadAllChronicleRecords } from "@/lib/content-loader";
+import { getAllRecords } from "@/lib/records";
 
 export default function HomePage() {
-  const records = loadAllChronicleRecords();
+  const records = getAllRecords();
 
   return (
     <main style={{ padding: "2rem" }}>

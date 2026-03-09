@@ -1,3 +1,3 @@
 export * from "./enums";
 export * from "./base";
-export * from "./records";
+export * from "./record";
