@@ -1,31 +1,36 @@
 import Link from "next/link";
-import { getAllRecords } from "@/lib/content";
-import { RecordCard } from "@/components/record-card";
+import { loadAllChronicleRecords } from "@/lib/content-loader";
 
 export default function HomePage() {
-  const records = getAllRecords().slice(0, 3);
+  const records = loadAllChronicleRecords();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <section className="mb-4">
-        <p className="text-sm uppercase tracking-wide text-stone-600">Chronicle</p>
-        <h1 className="text-3xl font-bold text-stone-900">The Viking Age</h1>
-        <p className="my-2 max-w-4xl text-stone-700">
-          A historical companion platform for tabletop wargamers built around map discovery,
-          chronological exploration, and richly linked records.
-        </p>
-        <div className="flex gap-4 text-sm">
-          <Link href="/map" className="underline">Explore the Map</Link>
-          <Link href="/timeline" className="underline">Follow the Timeline</Link>
-          <Link href="/browse" className="underline">Browse the Chronicle</Link>
-        </div>
-      </section>
+    <main style={{ padding: "2rem" }}>
+      <h1>Chronicle</h1>
+      <p>Loaded records: {records.length}</p>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <div style={{ display: "grid", gap: "1rem", marginTop: "2rem" }}>
         {records.map((record) => (
-          <RecordCard key={record.id} record={record} />
+          <article
+            key={record.id}
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              padding: "1rem",
+            }}
+          >
+            <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>
+              {record.recordType}
+            </div>
+            <h2>{record.title}</h2>
+            <p>Slug: {record.slug}</p>
+            <p>ID: {record.id}</p>
+            <Link href={`/records/${record.directory}/${record.slug}`}>
+              Open record
+            </Link>
+          </article>
         ))}
-      </section>
-    </div>
+      </div>
+    </main>
   );
 }
